@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aux-lqs-sari"
+version = "0.1.0"
+description = "Independent spatial supervision and query initialization add-on"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+dependencies = ["torch>=2.4,<3"]
+
+[tool.setuptools.packages.find]
+include = ["aux_lqs_sari*"]

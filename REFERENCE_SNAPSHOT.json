@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "addon_version": "0.1.0",
+  "reference_kind": "historical_local_snapshot_not_certified_official_upstream_pin",
+  "observed_historical_checkout": {
+    "record_date": "2026-09-05",
+    "head": "6c7b0290bbe43c56d9c289392d086d07b06bba65",
+    "branch": "main",
+    "uncommitted_changes": true,
+    "official_upstream_commit_identity_verified": false
+  },
+  "reference_files_sha256": {
+    "models/dqdetr/slb_dq_modules.py": "f5856cf5649b01182aef5238dd59e42db3ab976e436013c4f4170aadfa6683e7",
+    "models/dqdetr/dqdetr.py": "9494838784fa104aca3f288f05888b65ca7300df0ba4ee3f7a18e1df4079e6c6",
+    "models/dqdetr/deformable_transformer.py": "f80af434855ad2764eaf9d156ffd1a99505c04dbeb1b844670dc0aa9223327f8",
+    "main_aitod.py": "75e10c5a783576a1dfda21009d8e6ec86314cfc69dce342f60dc8632b7d99850"
+  },
+  "historical_capture_manifest_file_hashes_match": true,
+  "default_added_module_formula_parity_checked": true,
+  "clean_upstream_end_to_end_integration_verified": false,
+  "final_paper_result_source_revision_verified": false,
+  "upstream_source_bundled": false
+}

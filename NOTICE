@@ -1,0 +1,7 @@
+Aux LQS SARI
+Copyright (c) 2026 Aux LQS SARI contributors
+
+This distribution contains only the project's added modules and supporting
+materials. It does not include DQ-DETR source or CUDA operator source.
+DQ-DETR and other external dependencies retain their own licenses and notices.
+See docs/ATTRIBUTION.md for the external framework attribution and boundary.

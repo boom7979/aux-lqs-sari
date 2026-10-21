@@ -1,0 +1,7 @@
+name: aux-lqs-sari
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+# Install a matching CPU or CUDA PyTorch wheel, then pip install --no-deps -e .
