@@ -12,8 +12,6 @@ This repository contains the project's add-on implementation, four add-on config
 - **LQS:** deterministic top-K selection using equal-weight sigmoid category and center scores, under the inherited query budget.
 - **SARI:** blend a bounded predicted size prior with the selected reference widths/heights, keeping centers unchanged.
 
-No Boltzmann selector or other exploratory method is included. Historical `SLSQueryGenerator` and `SLSAuxLoss` names are available as compatibility aliases, not additional modules.
-
 ## Installation
 
 Python 3.9 or later and PyTorch are required. Reference validation used PyTorch 2.4.0. Install the appropriate CPU or CUDA wheel using the [official PyTorch instructions](https://pytorch.org/get-started/previous-versions/), then install this package:

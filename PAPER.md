@@ -17,7 +17,7 @@ This repository is associated with that manuscript's method description. The Eng
 | Scale-Aware Reference Initialization SARI | `ScaleAwareRefInit` | `configs/full.py` |
 | Wiring helper for the added interfaces | `QueryConstructionAdapter` | supports all four variants |
 
-The manuscript's LQS corresponds to historical internal SLS naming. The compatibility aliases do not introduce another method. DQ-DETR's inherited counting, feature enhancement, query budgets, backbone, encoder/decoder, matching, and CUDA operators remain external dependencies and are not claimed as new modules.
+DQ-DETR's inherited counting, feature enhancement, query budgets, backbone, encoder/decoder, matching, and CUDA operators remain external dependencies and are not claimed as new modules.
 
 ## Results and reproduction
 
