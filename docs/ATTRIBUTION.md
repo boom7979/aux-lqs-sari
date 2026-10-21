@@ -1,15 +1,16 @@
-# Attribution and distribution boundary
+# Attribution
 
-This repository contains project-added spatial supervision, score fusion, reference-size initialization, integration helpers, and tests. DQ-DETR source, CUDA kernels, datasets, pretrained weights, and inherited counting/feature-enhancement code are not redistributed.
+## Added implementation
 
-DQ-DETR is the intended external detector foundation:
+This repository provides the project's spatial supervision head and losses, LQS score fusion, SARI reference sizing, adapter, module configurations, tests, and documentation. Focal and L1 losses are established objectives implemented using PyTorch. The figures illustrate the architecture and module formulas.
 
-Huang, Yi-Xin; Liu, Hou-I; Shuai, Hong-Han; Cheng, Wen-Huang. DQ-DETR: DETR with Dynamic Query for Tiny Object Detection. ECCV 2024 proceedings. https://arxiv.org/abs/2404.03507
+## External detector
 
-Official source: https://github.com/hoiliu-0801/DQ-DETR
+The detector foundation is **DQ-DETR: DETR with Dynamic Query for Tiny Object Detection**, by Yi-Xin Huang, Hou-I Liu, Hong-Han Shuai, and Wen-Huang Cheng, ECCV 2024 proceedings.
 
-This separation avoids distributing an uncleared combined source tree. It does not waive the terms applicable to separately downloaded dependencies, nor does it constitute legal clearance for downstream redistribution of a combined detector. Do not copy upstream functions or patches into this repository without checking their permissions.
+- [Paper](https://arxiv.org/abs/2404.03507)
+- [Official implementation](https://github.com/hoiliu-0801/DQ-DETR)
 
-The dependency's counting, feature enhancement, dynamic query budgets, matching framework, and operators should be credited to their original authors.
+Counting, feature enhancement, dynamic query budgets, backbone, encoder/decoder, matching, and deformable-attention operators belong to the external detector and its credited predecessors. Obtain that code separately under its applicable terms. The project's Apache-2.0 license covers the added distribution; it does not relicense external detector code, pretrained assets, or datasets.
 
-The code implements commonly used focal and L1 objectives using PyTorch. These objectives are not claimed as newly invented losses. Method figures in `figures/` are project-created diagrams, not images of experimental results. No new manuscript DOI, author list, or publication status is asserted here.
+See [NOTICE](../NOTICE), [LICENSE](../LICENSE), and [detector interface reference](VERSION_COMPATIBILITY.md).

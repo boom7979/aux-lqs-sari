@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Detector-independent wiring helper; not a copy of the DQ-DETR transformer."""
+"""Tensor interface for spatial prediction, query selection, and reference initialization."""
 import torch
 from torch import nn
 from .modules import LQSQueryGenerator,ScaleAwareRefInit,SpatialAuxLoss

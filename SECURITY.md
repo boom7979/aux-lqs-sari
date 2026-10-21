@@ -1,5 +1,5 @@
-# Security and private artifacts
+# Security
 
-Do not commit keys, credentials, dataset access tokens, checkpoints, private logs, or research records. Revoke accidentally exposed credentials at the issuing service before removing them from repository history.
+Keep credentials and dataset access tokens out of commits and issue reports. If a credential is exposed, revoke it at the issuing service.
 
-This add-on has no checkpoint-loading routine or network download behavior. Its synthetic tests do not need external files. A separately connected detector may load checkpoints using pickle-compatible APIs; use only trusted artifacts. Report a non-sensitive code issue through the repository's issue tracker, but never include secrets in a public report.
+Load external checkpoints only from trusted sources. Report code issues through the repository's issue tracker without including credentials or private data.

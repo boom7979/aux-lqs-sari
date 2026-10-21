@@ -1,27 +1,31 @@
-# Validation record
+# Module tests
 
-Local checks performed on 2026-10-18:
+## Run the tests
 
-| Check | Result |
+```bash
+python -m unittest discover -s tests -v
+python examples/synthetic_usage.py
+```
+
+## Coverage
+
+| Component | Checks |
 | --- | --- |
-| Eight standalone synthetic unit tests | passed |
-| Import boundary | PyTorch and Python standard library only |
-| Spatial-head output parity with historical default implementation | exact in three synthetic fixtures |
-| LQS selected-index parity | exact in the same fixtures |
-| SARI output parity | exact in the same fixtures |
-| Binary center, size, and offset target parity | exact in the same fixtures |
-| Auxiliary loss parity | absolute tolerance 1e-7 and relative tolerance 1e-6 |
-| Dataset, detector source, CUDA kernels, checkpoints, and raw logs/evaluation assets | excluded from this repository |
-| Paper-reported result summary | supplied in RESULTS.md, not independently rerun |
+| Spatial head | Output shapes, constructor compatibility, and backward gradients |
+| LQS | Score formula, padding-mask polarity, top-K indices, and query-budget boundaries |
+| SARI | Dimension formula, unchanged centers, disabled identity, and selected-scale gradients |
+| Auxiliary losses | Binary center targets, collisions, empty-target backward, and half-precision focal stability |
+| Adapter and configurations | Four variants, configuration loading, and detached encoder references |
 
-The private reference comparison used identical copied head parameters and matching default settings, not separately trained models. Comparison fixtures used random seeds only to generate synthetic tensors; they are not repeated training experiments. The historical comparison harness and research records are not redistributed.
+The synthetic example returns query indices of shape `(1, 5)` and reference boxes of shape `(1, 5, 4)`, and checks finite spatial losses and backward gradients.
 
-The standalone tests were executed on Windows with Python 3.9.25 and PyTorch 2.4.0+cu124. The GitHub Actions CPU workflow targets Python 3.11; a remote CI run has not been executed by this local packaging step. The module's guards reject a query budget larger than the number of valid candidates, rather than returning padded indices.
+## Test results
 
-The refactored default formula is covered, not every experimental option formerly present in private development code. Empty positive sets return graph-connected zero size/offset losses; this preserves loss values while making empty-target backward safe. Historical whole-detector checkpoint loading, decoder-integration parity, and final detection AP have not been certified by these module tests.
+| Suite | Environment | Result |
+| --- | --- | --- |
+| Current module suite and synthetic example | Windows, Python 3.9.25, PyTorch 2.4.0+cu124; CPU tensors | 13 tests passed; example passed on 2026-10-21 |
+| Public CI at commit `54e57c5` | Ubuntu 22.04, Python 3.11, CPU PyTorch 2.4.0 | 8 tests passed; [workflow run](https://github.com/boom7979/aux-lqs-sari/actions/runs/39540892424) |
 
-The historical dirty-checkout identifier and exact reference-file hashes are recorded in `docs/VERSION_COMPATIBILITY.md`. They must not be described as a validated clean official-upstream revision.
+The [workflow definition](.github/workflows/tests.yml) runs the module suite and synthetic example. Workflow results are associated with the commit shown in each run.
 
-## Pre-publication recheck on 2026-10-21
-
-All eight standalone synthetic unit tests passed again. The synthetic usage example produced valid query/reference shapes and finite losses and backward gradients. These checks used the existing Windows PyTorch environment; they are not a fresh detector training or benchmark rerun.
+These tests cover standalone module behavior. The [integration guide](docs/INTEGRATION.md) gives detector-side checks for index alignment, geometry, loss weighting, and gradients. Experimental detection results are presented in [RESULTS.md](RESULTS.md).

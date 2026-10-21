@@ -1,10 +1,32 @@
-# Integrating with a separately obtained detector
+# Integrating with DQ-DETR
 
-## Responsibility boundary
+## Detector source
 
-Download DQ-DETR from its official repository separately. This repository supplies neither an upstream checkout nor an upstream-source patch. The following interface instructions and examples describe the added logic; they do not reproduce complete upstream functions. Verify the chosen upstream revision and comply with its terms. If its internal interface differs, adapt the hook locations and test them rather than assuming line numbers match.
+Obtain [DQ-DETR](https://github.com/hoiliu-0801/DQ-DETR) separately. The [interface reference](VERSION_COMPATIBILITY.md) identifies the source used for the hook map below. The hooks below describe how to connect the added module interfaces to the detector.
 
-## Tensors
+## DQ-DETR hook locations
+
+The map below refers to [official commit c5246797b111d7e5da9e6c20667fe0901aae35ba](https://github.com/hoiliu-0801/DQ-DETR/tree/c5246797b111d7e5da9e6c20667fe0901aae35ba). The table identifies where each added operation connects to the detector.
+
+| Location in the external checkout | Added operation |
+| --- | --- |
+| `models/dqdetr/deformable_transformer.py`, `DeformableTransformer.forward`, after CGFE at line 332 | Predict the spatial outputs once from enhanced memory and retain them |
+| Same function, query budget at line 335 | Retain the inherited count-based K |
+| Same function, category-only top-K at line 371 | Obtain aligned indices with `adapter.select` from encoder max class logits and spatial outputs |
+| Same function, detached selected encoder references at line 375 | Apply `adapter.initialize` to sigmoid-normalized boxes, then convert back with the detector's inverse-sigmoid helper |
+| Same function, content gather at line 379 | Gather query content with the same selected indices |
+| Same function, decoder call at line 415 | Supply initialized references while keeping dense memory and decoder logic unchanged |
+| `models/dqdetr/dqdetr.py`, `SetCriterion.forward` at line 472; loss-weight construction from line 765 | Expose spatial outputs to the criterion and add the three weighted spatial losses |
+
+To check the source identity of an existing checkout without importing or modifying the detector:
+
+```bash
+python examples/check_dqdetr_interfaces.py /path/to/DQ-DETR
+```
+
+The command checks source identity and reports function locations. Connect the module interfaces using the steps below, then run the detector-side checks at the end of this guide.
+
+## Tensor inputs
 
 | Input | Shape and meaning |
 | --- | --- |
@@ -16,15 +38,21 @@ Download DQ-DETR from its official repository separately. This repository suppli
 | query budget | positive integer K from the detector's existing counting/query-budget mechanism |
 | targets | list of dictionaries with normalized cxcywh `boxes`, in the same transformed coordinates as the features |
 
-Do not pass class probabilities into an interface expecting logits, raw proposal logits as normalized boxes, or a mask with inverted polarity. This release does not change how DQ-DETR predicts the query budget.
+Supply raw category logits, normalized candidate boxes, and a mask with True at padded positions. DQ-DETR supplies the count-based query budget.
+
+## Query-budget and coordinate conventions
+
+Selection caps the requested K at the total candidate count N. With a padding mask, it raises an error if fewer valid candidates remain than this capped budget. Both category-only and LQS selection follow this rule.
+
+The auxiliary location loss averages over all flattened positions, including padding. Its inputs are separate from the selection padding mask. GT center coordinates, normalized dimensions, and feature-grid dimensions must use a consistent coordinate system. For heterogeneous padded batches, account for each image's valid extent when constructing targets. The paper uses microbatch size one.
 
 ## Hook 1 Create the added module
 
-Create `QueryConstructionAdapter(hidden_dim, variant)` as a registered `nn.Module` on the transformer/detector, not a fresh local variable inside every forward. Construct it before creating the optimizer so its trainable parameters are included. Put it on the same device as the detector.
+Register one `QueryConstructionAdapter(hidden_dim, variant)` on the transformer or detector before constructing the optimizer. Reuse this instance across forward calls and place it on the same device as the detector.
 
 ## Hook 2 Predict spatial outputs
 
-Call `adapter.predict(memory, spatial_shapes)` once on the enhanced encoder features. Retain the returned dictionary for selection, initialization, and spatial losses. The prediction head is shared across these uses; do not instantiate a separate randomly initialized head for each use.
+Call `adapter.predict(memory, spatial_shapes)` once on the enhanced encoder features. Retain the returned dictionary for selection, initialization, and spatial losses. Selection, initialization, and spatial losses share this prediction head.
 
 ## Hook 3 Select indices
 
@@ -35,15 +63,15 @@ query_indices, ranking_scores = adapter.select(
     category_logits, spatial_outputs, query_budget, padding_mask)
 ```
 
-For the Aux-only variant this preserves category-only ranking. LQS/full use the additive fused scores. Preserve the upstream query-budget computation. Use the same indices to gather query embeddings, encoder references, and any aligned encoder outputs. Updating references but leaving query embeddings at different indices is incorrect.
+For the Aux-only variant this preserves category-only ranking. LQS/full use the additive fused scores. Preserve the upstream query-budget computation. Use the same indices to gather query embeddings, encoder references, and any aligned encoder outputs.
 
 ## Hook 4 Initialize decoder references
 
 Gather the encoder-regressed normalized cxcywh boxes at the selected indices. Preserve the detector's stop-gradient boundary for encoder boxes. Pass these detached boxes, the retained spatial outputs, and the same indices into `adapter.initialize`. SARI leaves centers unchanged and updates only width and height.
 
-If the decoder expects unactivated references, apply the detector's own inverse-sigmoid helper **after** SARI. Preserve its epsilon/clamping behavior; the historical helper uses epsilon 1e-3. Do not apply SARI to raw logit-space boxes or to final decoder predictions. Do not detach the resulting SARI output again if doing so would unintentionally remove the intended size-prior gradient path.
+Apply SARI to normalized encoder references. If the decoder expects logit-space references, apply the detector's inverse-sigmoid helper **after** SARI, preserving its epsilon/clamping behavior (epsilon 1e-3 in the referenced DQ-DETR source). Keep the gradient path through the predicted size prior.
 
-The adapter's convenience `forward` performs spatial prediction, selection, detached encoder-box gathering, and dimension initialization. It returns normalized references, not decoder predictions. It does not gather decoder query embeddings or run the decoder; those remain detector-side work.
+The adapter's `forward` performs spatial prediction, selection, detached encoder-box gathering, and dimension initialization. It returns normalized references and the intermediate spatial outputs. Gather the decoder query embeddings with the returned indices and run the decoder in the detector.
 
 ## Hook 5 Add spatial supervision
 
@@ -55,11 +83,11 @@ weights = {"loss_loc": 0.1, "loss_scale": 0.1, "loss_offset": 0.1}
 # Add each named loss to the detector's normal weighted loss construction.
 ```
 
-Retain the existing detector matching, classification, box losses, denoising path, and decoder auxiliary losses. The spatial Aux terms are additional terms, not a replacement for inherited decoder auxiliary supervision. Register their weights in the same loss-weight dictionary used by the training engine so they are actually optimized. Do not use test-set labels during inference or optimization.
+Retain the existing detector matching, classification, box losses, denoising path, and decoder auxiliary losses. Add the spatial Aux terms alongside the existing decoder auxiliary supervision. Register their weights in the same loss-weight dictionary used by the training engine so they are actually optimized.
 
 ## Hook 6 Training and evaluation
 
-Train/evaluate with the detector's own scripts after implementing these hooks. The method reference recipe uses AI-TOD-V2 trainval → test, 24 epochs, microbatch size 1, accumulation 3, and AMP. These settings require detector-side configuration and are not provided by the add-on's variant dictionaries. Obtain any pretraining artifacts separately and record their exact source and load behavior.
+Train/evaluate with the detector's own scripts after implementing these hooks. The method reference recipe uses AI-TOD-V2 trainval → test, 24 epochs, microbatch size 1, accumulation 3, and AMP. Apply these settings in the detector's training configuration and specify the initialization used for your run.
 
 ## Verify the integration
 
@@ -68,6 +96,4 @@ Train/evaluate with the detector's own scripts after implementing these hooks. T
 3. Confirm all selected indices are valid and shared across gathered outputs.
 4. Verify center identity and the SARI width-height formula numerically.
 5. Check that spatial losses have finite values and gradients under AMP.
-6. Compare a frozen, identical input/state against the intended reference implementation before making checkpoint or metric-parity claims.
-
-This release does not include an automatic installer that edits upstream detector files, nor a validated integration against every upstream revision. Parameter names under an adapter may differ from historical transformer attributes, so old full-detector checkpoints are not promised to load without a separately validated key mapping.
+6. When loading a checkpoint, match its parameter names and shapes to the registered modules.

@@ -1,30 +1,36 @@
-# Reproduction settings and scope
+# Dataset and training settings
 
-## Add-on settings
+## Dataset and evaluator
 
-The four files under `configs/` are deliberately small original add-on configurations, not copies of the upstream detector's full configuration. Load their `variant`, `hidden_dim`, and loss weights in the adapter integration. They cannot be passed unchanged to an untouched DQ-DETR training entry point.
+The [official AI-TOD-V2 project page](https://chasel-tsui.github.io/AI-TOD-v2/) provides dataset resources and revised annotations. Follow the dataset providers' access and usage terms. Use trainval for training and test for evaluation.
 
-## Detector-side reference recipe
+The benchmark description contains 28,036 images and 752,745 annotated instances: 11,214 train, 2,804 validation, and 14,018 test images. Train and validation combine into 14,018 trainval images. These figures follow the [DQ-DETR dataset description](https://arxiv.org/html/2404.03507v3#S4.SS1).
+
+Use the AI-TOD evaluator's area bins and maxDets=1500 rather than ordinary COCO size bins. The evaluator source reference is [jwwangchn/cocoapi-aitod at 44a230ae5197cb89bf9e5e62f313cac3ad30c7af](https://github.com/jwwangchn/cocoapi-aitod/tree/44a230ae5197cb89bf9e5e62f313cac3ad30c7af), subdirectory `aitodpycocotools`.
+
+## Module configuration
+
+The files in `configs/` define `variant`, `hidden_dim`, and `spatial_loss_weights`. Pass the first two values to `QueryConstructionAdapter` and register the weights in the detector's loss-weight dictionary. The integration guide describes the required detector-side hooks.
+
+## Training settings
 
 | Setting | Value |
 | --- | --- |
-| Dataset split | AI-TOD-V2 trainval for training, test for evaluation |
-| Final benchmark image counts | 14,018 trainval and 14,018 test, matching the original paper |
+| Dataset split | AI-TOD-V2 trainval to test |
 | Backbone | ResNet-50 |
-| Epochs | 24 |
-| Microbatch size and accumulation | 1 and 3 |
-| Main and backbone learning rates | 1e-4 and 1e-5 |
+| Feature levels / hidden dimension | 5 / 256 |
+| Encoder / decoder layers | 6 / 6 |
+| Training epochs / endpoint | 24 / epoch 23 with zero-based indexing |
+| Microbatch / gradient accumulation | 1 / 3 |
+| Optimizer | AdamW |
+| Main / backbone learning rates | 1e-4 / 1e-5 |
 | Scheduler milestones | 13 and 23 |
-| Weight decay | 1e-4 |
+| Weight decay / gradient clipping | 1e-4 / 0.1 |
+| Training resize | Short-side discrete targets from 480 to 800 pixels; long side capped at 1333 |
 | Mixed precision | AMP |
 | Inherited query budgets | 300, 500, 900, 1500 |
+| Spatial loss weights | 0.1 each for location, dimension, offset |
+| LQS category / center weights | 0.5 / 0.5 |
+| SARI bounds / blend | [0.01, 0.15] / 0.5 |
 
-The recipe describes implementation settings, not a certified match to a final-result checkpoint. Preserve and report actual preprocessing, evaluator bins/maxDets, seed/data-seed handling, initialization/pretraining provenance, and runtime versions for a concrete run. The paper-reported numerical summary is available in [RESULTS.md](../RESULTS.md); it is not a fresh evaluation from this repository. Source-version scope is recorded in [version compatibility](VERSION_COMPATIBILITY.md).
-
-Use the AI-TOD-specific evaluator in the external detector environment. A previously inspected evaluator reference is jwwangchn/cocoapi-aitod commit `44a230ae5197cb89bf9e5e62f313cac3ad30c7af`, subdirectory `aitodpycocotools`. That dependency is not bundled and is not needed for standalone module tests.
-
-## Limitations
-
-This is an independent add-on release with module-level testing, not a full end-to-end detector release. Historical checkpoint key names, original optimizer state, full training RNG streams, and exact final AP are not guaranteed to match after external integration. Validate these separately if making a reproduction claim.
-
-Weights and raw experimental records are not redistributed; only the paper-reported summary is supplied. The public-code scope does not remove the need to retain genuine underlying research records privately or to meet a journal's actual data/code policy. Do not describe unavailable checkpoints or logs as downloadable or available on request unless they can really be supplied.
+This table summarizes the manuscript's settings. When adapting the modules to a detector environment, specify its initialization, preprocessing, annotation version, evaluator settings, random states, and detector commit alongside the module configuration.

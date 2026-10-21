@@ -1,64 +1,79 @@
 # Aux LQS SARI
 
-Independent PyTorch modules for spatial auxiliary supervision, location-guided query selection, and scale-aware reference initialization.
+Independent PyTorch implementations of spatial auxiliary supervision (Aux), location-guided query selection (LQS), and scale-aware reference initialization (SARI), accompanying **Spatially supervised query selection and reference box initialization for tiny object detection**.
 
-Associated manuscript: **Spatially supervised query selection and reference box initialization for tiny object detection**. See [paper information](PAPER.md), [paper-reported results](RESULTS.md), and [reference version metadata](docs/VERSION_COMPATIBILITY.md).
+The modules extend [DQ-DETR](https://github.com/hoiliu-0801/DQ-DETR) at its query-selection and reference-initialization interfaces. This repository provides the added modules, four module configurations, integration guidance, synthetic tests, and paper-reported result summaries. The detector framework, datasets, and trained weights are obtained separately.
 
-This repository contains the project's add-on implementation, four add-on configurations, tests, and integration documentation. **It does not redistribute DQ-DETR, its counting/feature-enhancement modules, or its CUDA operator source.** Obtain the upstream detector separately and comply with its applicable terms. This package is not a standalone detection training framework.
+## Method overview
 
-## Method
+- **Aux** predicts center logits, normalized dimensions, and within-cell offsets using a shared MLP. Training adds binary center focal loss and positive-cell dimension/offset L1 losses.
+- **LQS** ranks candidates using `0.5 * sigmoid(category_logit) + 0.5 * sigmoid(center_logit)` and selects top-K valid positions under the inherited query budget.
+- **SARI** gathers the dimension prediction at the selected indices and blends `0.01 + 0.14 * prediction` with the original reference dimensions at equal weight, preserving centers.
 
-- **Aux:** a shared MLP with center, normalized-size, and sub-cell-offset prediction branches; binary center focal loss and positive-cell size/offset L1 losses.
-- **LQS:** deterministic top-K selection using equal-weight sigmoid category and center scores, under the inherited query budget.
-- **SARI:** blend a bounded predicted size prior with the selected reference widths/heights, keeping centers unchanged.
+See [method details](docs/METHOD.md) and the [architecture](figures/architecture.svg) and [module](figures/module_details.svg) diagrams.
 
-## Installation
+## Repository structure
 
-Python 3.9 or later and PyTorch are required. Reference validation used PyTorch 2.4.0. Install the appropriate CPU or CUDA wheel using the [official PyTorch instructions](https://pytorch.org/get-started/previous-versions/), then install this package:
+| Path | Contents |
+| --- | --- |
+| `aux_lqs_sari/` | Prediction head, query ranking, reference sizing, auxiliary losses, and adapter |
+| `configs/` | Module variants and spatial loss weights |
+| `docs/` | Method, detector interfaces, dataset resources, and training settings |
+| `examples/synthetic_usage.py` | Executable tensor-interface example |
+| `tests/test_modules.py` | Synthetic module regression tests |
+| `RESULTS.md` | Paper-reported detection results |
+
+## Installation and quick start
+
+Use Python 3.9 or later and PyTorch. The reference module environment uses PyTorch 2.4.0; choose a CPU or CUDA installation from the [official instructions](https://pytorch.org/get-started/previous-versions/).
 
 ```bash
+# CPU reference installation
+python -m pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cpu
 python -m pip install --no-deps -e .
 python -m unittest discover -s tests -v
 python examples/synthetic_usage.py
 ```
 
-For a fresh CPU reference environment:
-
-```bash
-python -m pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cpu
-python -m pip install --no-deps -e .
-```
-
-The add-on itself requires no CUDA extension, torchvision, AI-TOD evaluator, dataset, or trained weights. The detector you connect it to has its own additional requirements.
-
-## Use with a detector
+## Module integration
 
 ```python
 from aux_lqs_sari import QueryConstructionAdapter
 
 adapter = QueryConstructionAdapter(hidden_dim=256, variant="full")
-# Supply detector-produced tensors, not arbitrary values in a training run:
 result = adapter(memory, category_logits, candidate_boxes_cxcywh,
                  spatial_shapes, k=query_budget, padding_mask=padding_mask)
 ```
 
-The tensor interface and required decoder/criterion wiring are described in [the integration guide](docs/INTEGRATION.md). The four files in `configs/` configure this add-on only; they are **not complete DQ-DETR training configs**, and the untouched upstream entry point will not consume them automatically. No claim of one-command upstream integration or final-paper metric reproduction is made.
+Here `memory`, `category_logits`, normalized `candidate_boxes_cxcywh`, `spatial_shapes`, `query_budget`, and `padding_mask` are tensors or values supplied by the detector. The [integration guide](docs/INTEGRATION.md) specifies their shapes, coordinate conventions, hooks, and gradient boundaries. Register the adapter before constructing the optimizer. Use the selected indices consistently for query content and references.
 
-| Variant | Aux | LQS | SARI |
-| --- | --- | --- | --- |
-| baseline | off | off | off |
-| aux_only | on | off | off |
-| aux_lqs | on | on | off |
-| full | on | on | on |
+The adapter returns selected indices, ranking scores, references, and spatial predictions. The external detector supplies the backbone, counting, feature enhancement, decoder, matching, and training engine. The [interface reference](docs/VERSION_COMPATIBILITY.md) identifies the official source used for the documented hook locations.
 
-The baseline adapter leaves the detector's existing operations in place; it does not replace the baseline detector. Use [method settings](docs/METHOD.md) and [reproduction guidance](docs/REPRODUCIBILITY.md) when implementing the hooks.
+## Configuration
 
-## Availability and validation
+| Variant | Configuration | Aux | LQS | SARI |
+| --- | --- | --- | --- | --- |
+| baseline | `configs/baseline.py` | off | off | off |
+| aux_only | `configs/aux_only.py` | on | off | off |
+| aux_lqs | `configs/aux_lqs.py` | on | on | off |
+| full | `configs/full.py` | on | on | on |
 
-The manuscript's four-group result summary and metric definitions are included in [RESULTS.md](RESULTS.md), explicitly as **paper-reported results, not a rerun of this code release**. No checkpoints, dataset images/annotations, raw training logs, per-image predictions, or original evaluation JSON are included. Local tests validate the add-on implementation; they are not detection benchmarks or evidence that a particular final AP has been reproduced. See [validation](VALIDATION.md).
+Load `variant` and `hidden_dim` when constructing the adapter, and add `spatial_loss_weights` to the detector's weighted loss construction. Configure the detector training engine separately using the settings in the integration guide. See [training settings](docs/REPRODUCIBILITY.md).
+
+## Validation and experimental results
+
+Module tests and the synthetic example check formulas, target assignment, index selection, geometry, and gradients. See [test coverage and results](VALIDATION.md) and the detector-side checks in the [integration guide](docs/INTEGRATION.md).
+
+The [result tables](RESULTS.md) present the manuscript's four-group AP and AR comparison. The same reported values are available in [paper_results.json](paper_results.json).
+
+## Dataset availability
+
+Use the [official AI-TOD-V2 project page](https://chasel-tsui.github.io/AI-TOD-v2/) for dataset resources and revised annotations. The paper uses trainval for training and test for evaluation. Dataset and evaluator details are listed in [reproduction settings](docs/REPRODUCIBILITY.md).
+
+## Citation
+
+Software citation metadata are provided in [CITATION.cff](CITATION.cff); the associated manuscript and authors are described in [PAPER.md](PAPER.md). Please also cite the external DQ-DETR foundation.
 
 ## License and attribution
 
-The project-added code and documentation in this repository are distributed under Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE). This license does not grant rights to a separate DQ-DETR checkout or external datasets. It is not a blanket relicense of the upstream detector.
-
-The inherited detector and its original mechanisms should be credited to [DQ-DETR](https://github.com/hoiliu-0801/DQ-DETR). See [attribution](docs/ATTRIBUTION.md). No paper acceptance, DOI, or unavailable artifact is claimed.
+The added code and documentation are distributed under Apache-2.0; see [LICENSE](LICENSE) and [NOTICE](NOTICE). External detector code, pretrained weights, and datasets retain their providers' terms. [Attribution](docs/ATTRIBUTION.md) identifies the original detector and the added contributions.

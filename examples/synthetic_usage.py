@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-"""Executable interface example, not a detector or performance experiment."""
+"""Synthetic example of query selection, reference initialization, and spatial losses."""
 from pathlib import Path
 import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))

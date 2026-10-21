@@ -2,7 +2,7 @@
 # Copyright (c) 2026 Aux LQS SARI contributors
 """Project-added spatial supervision, query ranking, and reference sizing.
 
-This module depends only on PyTorch, not on a DQ-DETR source checkout.
+The module uses PyTorch tensor operations.
 """
 import math
 import torch
@@ -11,7 +11,11 @@ from torch.nn import functional as F
 
 
 class ScaleLocationHead(nn.Module):
-    """Predict center logits, normalized sizes, and offsets from [B,N,C]."""
+    """Predict center logits, normalized sizes, and offsets from [B,N,C].
+
+    ``num_conv_layers`` is retained as a constructor keyword for compatibility.
+    It counts shared token-wise Linear/ReLU blocks; no convolution is used.
+    """
     def __init__(self, hidden_dim=256, num_conv_layers=3):
         super().__init__()
         layers=[]
@@ -80,7 +84,7 @@ class ScaleAwareRefInit(nn.Module):
 class SpatialAuxLoss(nn.Module):
     """Binary center focal loss and positive-cell size/offset L1 losses.
 
-    Targets are binary center cells, not Gaussian heatmaps. A target is assigned
+    Targets mark assigned center cells with 1. A target is assigned
     to the level where its maximum side spans closest to two cells. Later GT
     boxes overwrite size/offset targets at a colliding cell, preserving the
     reference implementation's default assignment rule.
@@ -134,6 +138,6 @@ class SpatialAuxLoss(nn.Module):
         return {'loss_loc':loss_loc,'loss_scale':loss_scale,'loss_offset':loss_offset}
 
 
-# Compatibility names for the project's historical symbols, not an upstream API.
+# Retained import aliases.
 SLSQueryGenerator=LQSQueryGenerator
 SLSAuxLoss=SpatialAuxLoss

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "source_type": "manuscript_reported_results",
+  "dataset": "AI-TOD-V2",
+  "split": "trainval -> test",
+  "epochs": 24,
+  "metrics_unit": "percent",
+  "runs": [
+    {
+      "method_variant": "baseline",
+      "module_config": "configs/baseline.py",
+      "metrics_percent": {
+        "AP": 29.2328,
+        "AP50": 64.9573,
+        "AP75": 22.5241,
+        "AP_verytiny": 15.6701,
+        "AP_tiny": 29.5894,
+        "AP_small": 36.4798,
+        "AP_medium": 46.6243,
+        "AR1500": 45.2475,
+        "AR_verytiny": 25.2169
+      }
+    },
+    {
+      "method_variant": "aux_only",
+      "module_config": "configs/aux_only.py",
+      "metrics_percent": {
+        "AP": 29.3082,
+        "AP50": 65.1185,
+        "AP75": 22.5549,
+        "AP_verytiny": 15.6827,
+        "AP_tiny": 29.8803,
+        "AP_small": 36.6378,
+        "AP_medium": 46.7102,
+        "AR1500": 45.5163,
+        "AR_verytiny": 25.3125
+      }
+    },
+    {
+      "method_variant": "aux_lqs",
+      "module_config": "configs/aux_lqs.py",
+      "metrics_percent": {
+        "AP": 29.5262,
+        "AP50": 65.2482,
+        "AP75": 22.5798,
+        "AP_verytiny": 15.8281,
+        "AP_tiny": 29.8842,
+        "AP_small": 36.6779,
+        "AP_medium": 46.7119,
+        "AR1500": 45.8548,
+        "AR_verytiny": 28.8881
+      }
+    },
+    {
+      "method_variant": "full",
+      "module_config": "configs/full.py",
+      "metrics_percent": {
+        "AP": 29.619,
+        "AP50": 65.3393,
+        "AP75": 22.9121,
+        "AP_verytiny": 15.8357,
+        "AP_tiny": 29.8421,
+        "AP_small": 36.9166,
+        "AP_medium": 46.7248,
+        "AR1500": 46.0208,
+        "AR_verytiny": 28.9171
+      }
+    }
+  ]
+}
