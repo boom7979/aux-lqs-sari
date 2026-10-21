@@ -28,7 +28,7 @@ All metric values are percentages, displayed to the precision used in the paper.
 
 - **AP:** detection average precision, averaged over IoU thresholds 0.50 to 0.95 in increments of 0.05, across the dataset categories and the evaluator's all-area range, with maxDets=1500.
 - **AP50 / AP75:** corresponding detection AP at IoU 0.50 / 0.75.
-- **APvt / APtiny / APsmall / APmedium:** AP over the evaluator's verytiny, tiny, small, and medium area ranges. The nominal area ranges in pixel squared are `[0,64]`, `[64,256]`, `[256,1024]`, and `[1024,10000000000]`. Boundary handling follows the AI-TOD evaluator implementation.
+- **APvt / APtiny / APsmall / APmedium:** AP over the evaluator's verytiny, tiny, small, and medium area ranges. The nominal area ranges in pixel squared are [0,64], [64,256], [256,1024], and [1024,10000000000]. Boundary handling follows the AI-TOD evaluator implementation.
 - **AR1500:** detection average recall with evaluator maxDets=1500, averaged over the same IoU thresholds and the all-area range.
 - **ARvt:** corresponding verytiny-area detection average recall with maxDets=1500.
 
