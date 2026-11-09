@@ -21,10 +21,10 @@ The synthetic example returns query indices of shape `(1, 5)` and reference boxe
 
 ## Test results
 
-| Suite | Environment | Result |
-| --- | --- | --- |
-| Current module suite and synthetic example | Windows, Python 3.9.25, PyTorch 2.4.0+cu124; CPU tensors | 13 tests passed; example passed on 2026-10-21 |
-| Public CI at commit `54e57c5` | Ubuntu 22.04, Python 3.11, CPU PyTorch 2.4.0 | 8 tests passed; [workflow run](https://github.com/boom7979/aux-lqs-sari/actions/runs/39540892424) |
+| Suite | Environment |
+| --- | --- |
+| Current module suite and synthetic example | Windows, Python 3.9.25, PyTorch 2.4.0+cu124; CPU tensors | 
+| Public CI at commit `54e57c5` | Ubuntu 22.04, Python 3.11, CPU PyTorch 2.4.0 |
 
 The [workflow definition](.github/workflows/tests.yml) runs the module suite and synthetic example. Workflow results are associated with the commit shown in each run.
 
